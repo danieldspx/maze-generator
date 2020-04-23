@@ -1,7 +1,12 @@
-import System.IO  
+import System.IO
+import qualified ExampleMaze as Ex
+import qualified Maze
+
+mazeName = "maze.svg"
+
+wallList = Maze.getWallList Ex.mazeCoords
+sizeCell = 10
+
   
 main = do  
-    handle <- openFile "coordinates.txt" ReadMode  
-    contents <- hGetContents handle  
-    putStr contents  
-    hClose handle
+    writeFile  mazeName $ Maze.getMazeSvg Ex.mazeSize sizeCell wallList
