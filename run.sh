@@ -1,2 +1,2 @@
-ghc -o bin/Main.o Main
+ghc --make -o bin/Main.o Main
 bin/Main.o
