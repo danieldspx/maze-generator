@@ -15,6 +15,15 @@ data CellProp = CellProp {group::Group, top::Cell, right::Cell, bottom::Cell, le
 instance Eq CellProp where
     cellP1 == cellP2 = (group cellP1) == (group cellP2) -- CellProp are equal when their group are.
 
+divMod' :: Int -> Int -> Int
+divMod' x = snd . divMod x
+
+deleteNth :: Int -> [a] -> [a]
+deleteNth i items = take i items ++ drop (1 + i) items
+
+removeDuplicates :: (Foldable t, Eq a, Num a) => t a -> [a]
+removeDuplicates = foldr (\x seen -> if x `elem` seen then seen else x : seen) []
+
 tupleToCell :: (Int, Int) -> Cell
 tupleToCell (x, y) = Cell x y
 
@@ -76,11 +85,24 @@ getMapCells :: Int -> Map.Map Cell CellProp
 getMapCells size = Map.fromList tuplesCellNeighbour
                                     where
                                         cellsCord = getCellsCoordinate size
-                                        neighbours = map (getNeighbours size) $ cellsCord
-                                        tuplesCellNeighbour = zip cellsCord neighbours
+                                        -- neighbours = map (getNeighbours size) $ cellsCord
+                                        tuplesCellNeighbour = zip cellsCord $ take (size*size) $ repeat getEmptyCellProp 
 
 getMapCellsWithGroup :: Int -> Int -> Map.Map Cell CellProp
 getMapCellsWithGroup size startGroup = setGroupMapCells startGroup $ getMapCells size
+
+
+getNeighbour :: Int -> CellProp -> Cell
+getNeighbour randNum cellProp = case (randNum `divMod'` 4) of 0 -> top cellProp
+                                                              1 -> right cellProp
+                                                              2 -> bottom cellProp
+                                                              3 -> left cellProp
+
+randomCellsCoord _ (x:[]) = [x]
+randomCellsCoord (n:[]) cellsCoord = (cellsCoord!!randPos):(deleteNth randPos cellsCoord) where randPos = n `divMod'` (length cellsCoord)
+randomCellsCoord (n:nums) cellsCoord = removeDuplicates $ (cellsCoord!!randPos):(randomCellsCoord nums cellsDel) where cellsDel = deleteNth n cellsCoord
+                                                                                                                       randPos = n `divMod'` (length cellsCoord)
+                                                
 
 
 -- createMapCells :: Int -> [(Cell, CellProp)] -> Map.Map Cell CellProp
