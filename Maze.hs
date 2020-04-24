@@ -100,8 +100,8 @@ getNeighbour randNum cellProp = case (randNum `divMod'` 4) of 0 -> top cellProp
 
 randomCellsCoord _ (x:[]) = [x]
 randomCellsCoord (n:[]) cellsCoord = (cellsCoord!!randPos):(deleteNth randPos cellsCoord) where randPos = n `divMod'` (length cellsCoord)
-randomCellsCoord (n:nums) cellsCoord = removeDuplicates $ (cellsCoord!!randPos):(randomCellsCoord nums cellsDel) where cellsDel = deleteNth n cellsCoord
-                                                                                                                       randPos = n `divMod'` (length cellsCoord)
+randomCellsCoord (n:nums) cellsCoord = (cellsCoord!!randPos):(randomCellsCoord nums cellsDel) where cellsDel = deleteNth randPos cellsCoord
+                                                                                                    randPos = n `divMod'` (length cellsCoord)
                                                 
 
 
