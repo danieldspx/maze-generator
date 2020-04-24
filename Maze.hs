@@ -98,10 +98,13 @@ getNeighbour randNum cellProp = case (randNum `divMod'` 4) of 0 -> top cellProp
                                                               2 -> bottom cellProp
                                                               3 -> left cellProp
 
-randomCellsCoord _ (x:[]) = [x]
-randomCellsCoord (n:[]) cellsCoord = (cellsCoord!!randPos):(deleteNth randPos cellsCoord) where randPos = n `divMod'` (length cellsCoord)
-randomCellsCoord (n:nums) cellsCoord = (cellsCoord!!randPos):(randomCellsCoord nums cellsDel) where cellsDel = deleteNth randPos cellsCoord
-                                                                                                    randPos = n `divMod'` (length cellsCoord)
+shuffleList :: [Int] -> [a] -> [a]
+shuffleList _ (x:[]) = [x]
+shuffleList (n:[]) list = (list!!randPos):(deleteNth randPos list) where randPos = n `divMod'` (length list)
+shuffleList (n:nums) list = (list!!randPos):(shuffleList nums listDel) where listDel = deleteNth randPos list
+                                                                              randPos = n `divMod'` (length list)
+
+
                                                 
 
 
