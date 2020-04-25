@@ -9,6 +9,7 @@ module Maze (
 import Svg
 import qualified Data.Map as Map
 import qualified Data.Maybe as Maybe
+import Debug.Trace as Deb
 
 type Group = Int
 data Cell = AbsentCell | Cell Int Int deriving (Show, Eq, Ord) -- X Y
@@ -104,6 +105,11 @@ getConnection pos cellProp = case (pos `divMod'` 4) of 0 -> top cellProp
                                                        1 -> right cellProp
                                                        2 -> bottom cellProp
                                                        3 -> left cellProp
+getNeighbourFromPos :: Cell -> Int -> Int -> Cell
+getNeighbourFromPos cell size pos = case (pos `divMod'` 4) of 0 -> getTopNeighbour cell
+                                                              1 -> getRightNeighbour size cell
+                                                              2 -> getBottomNeighbour size cell
+                                                              3 -> getLeftNeighbour cell
 
 getPossibleConnDirection :: Int -> Cell -> [Int]
 getPossibleConnDirection size cell = map fst $ filter (\x -> (snd x) /= AbsentCell) $ [(0, getTopNeighbour cell),
@@ -132,23 +138,23 @@ canConnect _ AbsentProp = False
 canConnect cellProp1 cellProp2 = cellProp1 /= cellProp2 -- If the groups are differents
 
 searchPossibleConnection :: Int -> Map.Map Cell CellProp -> Cell -> [(Int, Cell)]
-searchPossibleConnection size cellsMap cell = filter (\x -> canConnect cellProp $ lookupProp (snd x ) cellsMap) absentNbr where absentNbr = getAbsentConnection cellProp possibleConn
-                                                                                                                                possibleConn = getPossibleConnDirection size cell
-                                                                                                                                cellProp = lookupProp cell cellsMap
+searchPossibleConnection size cellsMap cell = map (\(x, _) -> (x, getNeighbourFromPos cell size x)) $ filter (\x -> canConnect cellProp $ lookupProp (snd x ) cellsMap) absentNbr where absentNbr = getAbsentConnection cellProp possibleConn
+                                                                                                                                                                                        possibleConn = getPossibleConnDirection size cell
+                                                                                                                                                                                        cellProp = lookupProp cell cellsMap
 
 stablishConnection :: Cell -> Map.Map Cell CellProp  -> (Int, Cell) -> Map.Map Cell CellProp
 stablishConnection cell cellsMap (connDirect, targetCell) = let cellProp = lookupProp cell cellsMap 
-                                                            in case connDirect of 0 -> Map.insert cell (cellProp {top = targetCell}) cellsMap
-                                                                                  1 -> Map.insert cell (cellProp {right = targetCell}) cellsMap
-                                                                                  2 -> Map.insert cell (cellProp {bottom = targetCell}) cellsMap
-                                                                                  3 -> Map.insert cell (cellProp {left = targetCell}) cellsMap
+                                                            in case connDirect of 0 -> Deb.trace (show cell++" -> "++show targetCell) $ Map.insert cell (cellProp {top = targetCell}) cellsMap
+                                                                                  1 -> Deb.trace (show cell++" -> "++show targetCell) $  Map.insert cell (cellProp {right = targetCell}) cellsMap
+                                                                                  2 -> Deb.trace (show cell++" -> "++show targetCell) $  Map.insert cell (cellProp {bottom = targetCell}) cellsMap
+                                                                                  3 -> Deb.trace (show cell++" -> "++show targetCell) $  Map.insert cell (cellProp {left = targetCell}) cellsMap
 initializeMazeAndGenerate :: Int -> [Int] -> Map.Map Cell CellProp
 initializeMazeAndGenerate size randomList = generateMaze size randomCoords $ getMapCellsWithGroup size 1 where randomCoords = shuffleList randomList $ getCellsCoordinate size
 
 generateMaze :: Int -> [Cell] -> Map.Map Cell CellProp -> Map.Map Cell CellProp
 generateMaze _ [] cellsMap = cellsMap
 generateMaze  size (thisCell:cells) cellsMap = generateMaze size cells updatedCellsMap where updatedCellsMap = if (length possibleConn) /= 0 then
-                                                                                                            changeGroupAndPropagate thisCell (stablishConnection thisCell cellsMap (possibleConn!!0)) (group cellProp)
+                                                                                                            trace ("should CG "++show thisCell++" \n AND \n"++show possibleConn) $ changeGroupAndPropagate thisCell (stablishConnection thisCell cellsMap (possibleConn!!0)) (group cellProp)
                                                                                                         else cellsMap
                                                                                              possibleConn = searchPossibleConnection size cellsMap thisCell
                                                                                              cellProp = lookupProp thisCell cellsMap
