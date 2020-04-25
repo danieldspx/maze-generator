@@ -1,6 +1,8 @@
 module Maze (
     Cell,
-    getCellList,
+    CellProp,
+    Group,
+    initializeMazeAndGenerate,
     getMazeSvg
 ) where
 
@@ -25,7 +27,7 @@ deleteNth i items = take i items ++ drop (1 + i) items
 
 lookupProp :: Cell -> Map.Map Cell CellProp -> CellProp
 -- lookupProp x y = Map.findWithDefault AbsentProp x y
-lookupProp x y = Maybe.fromJust $ Map.lookup x y
+lookupProp x y = Maybe.fromMaybe getEmptyCellProp $ Map.lookup x y
 
 removeDuplicates :: (Foldable t, Eq a, Num a) => t a -> [a]
 removeDuplicates = foldr (\x seen -> if x `elem` seen then seen else x : seen) []
@@ -140,22 +142,28 @@ stablishConnection cell cellsMap (connDirect, targetCell) = let cellProp = looku
                                                                                   1 -> Map.insert cell (cellProp {right = targetCell}) cellsMap
                                                                                   2 -> Map.insert cell (cellProp {bottom = targetCell}) cellsMap
                                                                                   3 -> Map.insert cell (cellProp {left = targetCell}) cellsMap
+initializeMazeAndGenerate :: Int -> [Int] -> Map.Map Cell CellProp
+initializeMazeAndGenerate size randomList = generateMaze size randomCoords $ getMapCellsWithGroup size 1 where randomCoords = shuffleList randomList $ getCellsCoordinate size
 
-generateMaze :: Int -> [(Int, Cell)] -> Map.Map Cell CellProp -> Map.Map Cell CellProp
+generateMaze :: Int -> [Cell] -> Map.Map Cell CellProp -> Map.Map Cell CellProp
 generateMaze _ [] cellsMap = cellsMap
-generateMaze  size (c:cells) cellsMap = generateMaze size cells updatedCellsMap where cellProp = lookupProp thisCell cellsMap
-                                                                                      updatedCellsMap = if (length possibleConn) /= 0 then stablishConnection thisCell cellsMap (possibleConn!!0) else cellsMap
-                                                                                      possibleConn = searchPossibleConnection size cellsMap thisCell
-                                                                                      thisCell = snd c
+generateMaze  size (thisCell:cells) cellsMap = generateMaze size cells updatedCellsMap where updatedCellsMap = if (length possibleConn) /= 0 then
+                                                                                                            changeGroupAndPropagate thisCell (stablishConnection thisCell cellsMap (possibleConn!!0)) (group cellProp)
+                                                                                                        else cellsMap
+                                                                                             possibleConn = searchPossibleConnection size cellsMap thisCell
+                                                                                             cellProp = lookupProp thisCell cellsMap
 
--- changeGroupAndPropagate cell cellsMap group = if length connections /= 0 then propagateChildrenGroupChange group connections cellsMap else updatedCellsMap
---                                                 where updatedCellsMap = Map.insert cell newCellProp cellsCord 
---                                                       connections = getExistingConnections newCellProp
---                                                       newCellProp = setGroupCellProp group oldCellProp 
---                                                       oldCellProp = lookupProp cell cellsMap
+changeGroupAndPropagate :: Cell -> Map.Map Cell CellProp -> Int -> Map.Map Cell CellProp
+changeGroupAndPropagate cell cellsMap group = if length connections /= 0 then propagateChildrenGroupChange connections cellsMap group else updatedCellsMap
+                                                where updatedCellsMap = Map.insert cell newCellProp cellsMap 
+                                                      connections = getExistingConnections newCellProp
+                                                      newCellProp = setGroupCellProp group oldCellProp 
+                                                      oldCellProp = lookupProp cell cellsMap
 
--- propagateChildrenGroupChange group (c:[]) cellsMap = Map.toList (changeGroupAndPropagate c cellsMap group)
--- propagateChildrenGroupChange group (c:cells) cellsMap = (changeGroupAndPropagate c cellsMap group)
+
+propagateChildrenGroupChange :: [Cell] -> Map.Map Cell CellProp -> Int -> Map.Map Cell CellProp
+propagateChildrenGroupChange (c:[]) cellsMap group = (changeGroupAndPropagate c cellsMap group)
+propagateChildrenGroupChange (c:cells) cellsMap group = Map.fromList $ (Map.toList $ changeGroupAndPropagate c cellsMap group)++(Map.toList $ propagateChildrenGroupChange cells cellsMap group)
 
 
 
