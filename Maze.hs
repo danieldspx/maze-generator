@@ -12,7 +12,7 @@ import qualified Data.Maybe as Maybe
 import Debug.Trace as Deb
 
 type Group = Int
-data Cell = AbsentCell | Cell Int Int deriving (Show, Eq, Ord) -- X Y
+data Cell = AbsentCell | Cell Int Int | CantConnect deriving (Show, Eq, Ord) -- X Y
 data CellProp = AbsentProp | CellProp {group::Group, top::Cell, right::Cell, bottom::Cell, left::Cell} deriving (Show, Ord)
 -- A CellProp with `group = 0` means that it has no group. A group must be >= 1.
 -- Neighbour of a Cell means connection (Wrong name but I might refactor it later, or not)
@@ -118,7 +118,7 @@ getPossibleConnDirection size cell = map fst $ filter (\x -> (snd x) /= AbsentCe
                                                                                         (3, getLeftNeighbour cell)]
 
 getExistingConnections :: CellProp -> [Cell]
-getExistingConnections cellProp = filter (/=AbsentCell) $ [top cellProp,
+getExistingConnections cellProp = filter (\c -> c/=AbsentCell && c/=CantConnect) $ [top cellProp,
                                                             right cellProp,
                                                             bottom cellProp,
                                                             left cellProp]
@@ -142,28 +142,37 @@ searchPossibleConnection size cellsMap cell = map (\(x, _) -> (x, getNeighbourFr
                                                                                                                                                                                         possibleConn = getPossibleConnDirection size cell
                                                                                                                                                                                         cellProp = lookupProp cell cellsMap
 
-stablishConnection :: Cell -> Map.Map Cell CellProp  -> (Int, Cell) -> Map.Map Cell CellProp
-stablishConnection cell cellsMap (connDirect, targetCell) = let cellProp = lookupProp cell cellsMap 
-                                                            in case connDirect of 0 -> Deb.trace (show cell++" -> "++show targetCell) $ Map.insert cell (cellProp {top = targetCell}) cellsMap
-                                                                                  1 -> Deb.trace (show cell++" -> "++show targetCell) $  Map.insert cell (cellProp {right = targetCell}) cellsMap
-                                                                                  2 -> Deb.trace (show cell++" -> "++show targetCell) $  Map.insert cell (cellProp {bottom = targetCell}) cellsMap
-                                                                                  3 -> Deb.trace (show cell++" -> "++show targetCell) $  Map.insert cell (cellProp {left = targetCell}) cellsMap
+stablishConnection :: Cell -> (Int, Cell) -> Map.Map Cell CellProp -> Map.Map Cell CellProp
+stablishConnection CantConnect _ cellsMap = cellsMap
+stablishConnection cell (connDirect, targetCell) cellsMap = let cellProp = lookupProp cell cellsMap
+                                                                hasReverseConn fToGetCell = (fToGetCell targetProp) == cell
+                                                                targetProp = lookupProp targetCell cellsMap
+                                                                curriedMapInsert v = Map.insert cell v cellsMap 
+                                                                in case connDirect of 0 -> Deb.trace (show cell++" -> "++show targetCell) $ stablishConnection targetCell (2, CantConnect) $ curriedMapInsert (cellProp {top = targetCell})
+                                                                                      1 -> Deb.trace (show cell++" -> "++show targetCell) $ stablishConnection targetCell (3, CantConnect) $ curriedMapInsert (cellProp {right = targetCell})
+                                                                                      2 -> Deb.trace (show cell++" -> "++show targetCell) $ stablishConnection targetCell (0, CantConnect) $ curriedMapInsert (cellProp {bottom = targetCell})
+                                                                                      3 -> Deb.trace (show cell++" -> "++show targetCell) $ stablishConnection targetCell (1, CantConnect) $ curriedMapInsert (cellProp {left = targetCell})
+
 initializeMazeAndGenerate :: Int -> [Int] -> Map.Map Cell CellProp
 initializeMazeAndGenerate size randomList = generateMaze size randomCoords $ getMapCellsWithGroup size 1 where randomCoords = shuffleList randomList $ getCellsCoordinate size
 
 generateMaze :: Int -> [Cell] -> Map.Map Cell CellProp -> Map.Map Cell CellProp
 generateMaze _ [] cellsMap = cellsMap
 generateMaze  size (thisCell:cells) cellsMap = generateMaze size cells updatedCellsMap where updatedCellsMap = if (length possibleConn) /= 0 then
-                                                                                                            trace ("should CG "++show thisCell++" \n AND \n"++show possibleConn) $ changeGroupAndPropagate thisCell (stablishConnection thisCell cellsMap (possibleConn!!0)) (group cellProp)
+                                                                                                            Deb.trace ("should CG "++show thisCell++" \n cellProp "++show cellProp) $ changeGroupAndPropagate thisCell (stablishConnection thisCell toConnectCell cellsMap) (group cellProp)
                                                                                                         else cellsMap
+                                                                                             toConnectCell = (possibleConn!!0)
                                                                                              possibleConn = searchPossibleConnection size cellsMap thisCell
                                                                                              cellProp = lookupProp thisCell cellsMap
 
+filterOnlyDifferentGroups :: Int ->  Map.Map Cell CellProp -> [Cell] -> [Cell]
+filterOnlyDifferentGroups groupNum cellsMap cells = filter (\c -> groupNum /= (group (lookupProp c cellsMap))) cells 
+
 changeGroupAndPropagate :: Cell -> Map.Map Cell CellProp -> Int -> Map.Map Cell CellProp
-changeGroupAndPropagate cell cellsMap group = if length connections /= 0 then propagateChildrenGroupChange connections cellsMap group else updatedCellsMap
-                                                where updatedCellsMap = Map.insert cell newCellProp cellsMap 
-                                                      connections = getExistingConnections newCellProp
-                                                      newCellProp = setGroupCellProp group oldCellProp 
+changeGroupAndPropagate cell cellsMap group = if length connections /= 0 then Deb.trace ("Propagate for "++show cell) $ propagateChildrenGroupChange connections cellsMap group else Deb.trace ("No connections"++show (getExistingConnections newCellProp)) $ updatedCellsMap
+                                                where connections = filterOnlyDifferentGroups group updatedCellsMap $ getExistingConnections newCellProp 
+                                                      updatedCellsMap = Map.insert cell newCellProp cellsMap
+                                                      newCellProp = Deb.trace ("Setting GP "++show group++" TO "++show oldCellProp) $ setGroupCellProp group oldCellProp 
                                                       oldCellProp = lookupProp cell cellsMap
 
 
@@ -201,3 +210,4 @@ propagateChildrenGroupChange (c:cells) cellsMap group = Map.fromList $ (Map.toLi
 -- Map.
 -- % Modular pra acessar
 -- Usar Map
+-- DUPLA DEPENDENCIA, QUANDO `A` LIGA EM `B`, `B` TBM SE LIGA EM `A` 
