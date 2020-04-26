@@ -183,13 +183,36 @@ filterOnlyDifferentGroups groupNum cellsMap cells = filter (\c -> groupNum /= (g
 
 changeGroup :: Cell -> Cell -> Map.Map Cell CellProp -> Map.Map Cell CellProp
 changeGroup motherCell toConnectCell cellMaps = Map.union updatedElems cellMaps
-                                                    where updatedElems = Map.fromList $ map (\(cellIt, propIt) -> (cellIt, setGroupCellProp toGroup propIt)) cellsThatNeedUpdate
-                                                          cellsThatNeedUpdate = filter (\(_, propIt) -> (group propIt) == fromGroup) $ Map.toList cellMaps
-                                                          toGroup = group $ lookupProp motherCell cellMaps
-                                                          fromGroup = group $ lookupProp toConnectCell cellMaps
+    where updatedElems = Map.fromList $ map (\(cellIt, propIt) -> (cellIt, setGroupCellProp toGroup propIt)) cellsThatNeedUpdate
+          cellsThatNeedUpdate = filter (\(_, propIt) -> (group propIt) == fromGroup) $ Map.toList cellMaps
+          toGroup = group $ lookupProp motherCell cellMaps
+          fromGroup = group $ lookupProp toConnectCell cellMaps
 
-                                                
+convertCellToRect :: Int -> Int -> Cell -> Int -> Rect
+convertCellToRect thick dimen (Cell x y) side = let biggerDim = 2*thick+dimen
+                                                    thickX = if x == 0 then 0 else thick 
+                                                    thickY = if y == 0 then 0 else thick 
+    in case side of 0 -> (Rect (Coord (x*dimen+x*thick-thickX) (y*dimen+y*thick-thickY)) (Dimen biggerDim thick))
+                    1 -> (Rect (Coord (x*dimen+x*thick+dimen) (y*dimen+y*thick-thickY)) (Dimen thick biggerDim))
+                    2 -> (Rect (Coord (x*dimen+x*thick-thickX) (y*dimen+y*thick+dimen)) (Dimen biggerDim thick))
+                    3 -> (Rect (Coord (x*dimen+x*thick-thickX) (y*dimen+y*thick-thickY)) (Dimen thick biggerDim))
 
+getAllRectForCell :: Cell -> CellProp -> Int -> Int ->[Rect]
+getAllRectForCell cell cellProp thick dim = map (convertCellToRect thick dim cell) $ map fst $ getAbsentConnection cellProp [0..3]
+
+convertCellsMapAsListToRects :: [(Cell, CellProp)] -> Int -> Int -> [Rect]
+convertCellsMapAsListToRects ((cell, cellProp):[]) thick dim = getAllRectForCell cell cellProp thick dim
+convertCellsMapAsListToRects (c:cellsList) thick dim = (convertCurried [c])++(convertCurried cellsList) 
+    where convertCurried x = convertCellsMapAsListToRects x thick dim
+
+createSvgFromCellsMap :: Int -> Int -> Int -> Map.Map Cell CellProp -> String
+createSvgFromCellsMap thickWall dimenCell gridSize cellsMap = createSvgContent wSvg hSvg $ convertCellsMapAsListToRects (Map.toList cellsMap) thickWall dimenCell
+    where hSvg = wSvg
+          wSvg = gridSize*dimenCell+gridSize*thickWall+dimenCell+thickWall
+
+generateMazeAndCreateSvg :: Int -> Int -> Int -> [Int] -> String
+generateMazeAndCreateSvg thickWall dimenCell gridSize randomList = createSvgFromCellsMap thickWall dimenCell gridSize cellsMap
+    where cellsMap = initializeMazeAndGenerate gridSize randomList
 
 -- createMapCells :: Int -> [(Cell, CellProp)] -> Map.Map Cell CellProp
 -- createMapCells _ [] = Map.empty
