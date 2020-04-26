@@ -155,16 +155,19 @@ stablishConnection cell (connDirect, targetCell) cellsMap = let cellProp = looku
                                                                                       3 -> stablishConnection targetCell (1, CantConnect) $ curriedMapInsert (cellProp {left = targetCell})
 
 initializeMazeAndGenerate :: Int -> [Int] -> Map.Map Cell CellProp
-initializeMazeAndGenerate size randomList = generateMaze size randomCoords $ getMapCellsWithGroup size 1 where randomCoords = shuffleList randomList $ getCellsCoordinate size
+initializeMazeAndGenerate size randomList = generateMaze size randomCoords randomList $ getMapCellsWithGroup size 1 where randomCoords = shuffleList randomList $ getCellsCoordinate size
 
-generateMaze :: Int -> [Cell] -> Map.Map Cell CellProp -> Map.Map Cell CellProp
-generateMaze _ [] cellsMap = cellsMap
-generateMaze  size (thisCell:cells) cellsMap = generateMaze size cells updatedCellsMap where updatedCellsMap = if (length possibleConn) /= 0 then
-                                                                                                            changeGroup thisCell (snd toConnectCell) (stablishConnection thisCell toConnectCell cellsMap)
-                                                                                                        else cellsMap
-                                                                                             toConnectCell = (possibleConn!!0)
-                                                                                             possibleConn = searchPossibleConnection size cellsMap thisCell
-                                                                                             cellProp = lookupProp thisCell cellsMap
+generateMaze :: Int -> [Cell] -> [Int] -> Map.Map Cell CellProp -> Map.Map Cell CellProp
+generateMaze _ [] _ cellsMap = cellsMap
+generateMaze  size (thisCell:cells) randList cellsMap = generateMaze size cells randTail updatedCellsMap 
+    where updatedCellsMap = if (length possibleConn) /= 0 then
+                changeGroup thisCell (snd toConnectCell) (stablishConnection thisCell toConnectCell cellsMap)
+            else cellsMap
+          toConnectCell = (possibleConn!!randNum)
+          randNum = if length possibleConn <= 1 then 0 else divMod' (head randList) (length possibleConn - 1)
+          randTail = if length randList == 0 then [] else tail randList
+          possibleConn = searchPossibleConnection size cellsMap thisCell
+          cellProp = lookupProp thisCell cellsMap
 
 filterOnlyDifferentGroups :: Int ->  Map.Map Cell CellProp -> [Cell] -> [Cell]
 filterOnlyDifferentGroups groupNum cellsMap cells = filter (\c -> groupNum /= (group (lookupProp c cellsMap))) cells 
