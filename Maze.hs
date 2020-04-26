@@ -1,7 +1,4 @@
 module Maze (
-    Cell,
-    CellProp,
-    Group,
     generateMazeAndCreateSvg
 ) where
 
@@ -14,7 +11,6 @@ type Group = Int
 data Cell = AbsentCell | Cell Int Int | CantConnect deriving (Show, Eq, Ord) -- X Y
 data CellProp = AbsentProp | CellProp {group::Group, top::Cell, right::Cell, bottom::Cell, left::Cell} deriving (Show, Ord)
 -- A CellProp with `group = 0` means that it has no group. A group must be >= 1.
--- Neighbour of a Cell means connection (Wrong name but I might refactor it later, or not)
 
 instance Eq CellProp where
     cellP1 == cellP2 = (group cellP1) == (group cellP2) -- CellProp are equal when their group are.
@@ -91,10 +87,8 @@ setGroupMapCells startGroup cells = Map.fromList $ _setGroupTupleCells startGrou
 
 getMapCells :: Int -> Map.Map Cell CellProp
 getMapCells size = Map.fromList tuplesCellNeighbour
-                                    where
-                                        cellsCord = getCellsCoordinate size
-                                        -- neighbours = map (getNeighbours size) $ cellsCord
-                                        tuplesCellNeighbour = zip cellsCord $ take (size*size) $ repeat getEmptyCellProp 
+    where cellsCord = getCellsCoordinate size
+          tuplesCellNeighbour = zip cellsCord $ take (size*size) $ repeat getEmptyCellProp 
 
 getMapCellsWithGroup :: Int -> Int -> Map.Map Cell CellProp
 getMapCellsWithGroup size startGroup = setGroupMapCells startGroup $ getMapCells size
@@ -118,9 +112,9 @@ getPossibleConnDirection size cell = map fst $ filter (\x -> (snd x) /= AbsentCe
 
 getExistingConnections :: CellProp -> [Cell]
 getExistingConnections cellProp = filter (\c -> c/=AbsentCell && c/=CantConnect) $ [top cellProp,
-                                                            right cellProp,
-                                                            bottom cellProp,
-                                                            left cellProp]
+                                                                                    right cellProp,
+                                                                                    bottom cellProp,
+                                                                                    left cellProp]
 
 getAbsentConnection :: CellProp -> [Int] -> [(Int, Cell)]
 getAbsentConnection cellProp possibleConn = filter (\x -> (snd x) == AbsentCell) $ map (\x -> (x, getConnection x cellProp)) possibleConn
@@ -138,9 +132,9 @@ canConnect cellProp1 cellProp2 = cellProp1 /= cellProp2 -- If the groups are dif
 
 searchPossibleConnection :: Int -> Map.Map Cell CellProp -> Cell -> [(Int, Cell)]
 searchPossibleConnection size cellsMap cell = filter (\x -> canConnect cellProp $ lookupProp (snd x ) cellsMap) $ map (\(x, _) -> (x, getNeighbourFromPos cell size x)) absentNbr 
-                                                                where absentNbr = getAbsentConnection cellProp possibleConn
-                                                                      possibleConn = getPossibleConnDirection size cell
-                                                                      cellProp = lookupProp cell cellsMap
+    where absentNbr = getAbsentConnection cellProp possibleConn
+          possibleConn = getPossibleConnDirection size cell
+          cellProp = lookupProp cell cellsMap
 
 stablishConnection :: Cell -> (Int, Cell) -> Map.Map Cell CellProp -> Map.Map Cell CellProp
 stablishConnection CantConnect _ cellsMap = cellsMap
@@ -148,10 +142,10 @@ stablishConnection cell (connDirect, targetCell) cellsMap = let cellProp = looku
                                                                 hasReverseConn fToGetCell = (fToGetCell targetProp) == cell
                                                                 targetProp = lookupProp targetCell cellsMap
                                                                 curriedMapInsert v = Map.insert cell v cellsMap 
-                                                                in case connDirect of 0 -> stablishConnection targetCell (2, CantConnect) $ curriedMapInsert (cellProp {top = targetCell})
-                                                                                      1 -> stablishConnection targetCell (3, CantConnect) $ curriedMapInsert (cellProp {right = targetCell})
-                                                                                      2 -> stablishConnection targetCell (0, CantConnect) $ curriedMapInsert (cellProp {bottom = targetCell})
-                                                                                      3 -> stablishConnection targetCell (1, CantConnect) $ curriedMapInsert (cellProp {left = targetCell})
+    in case connDirect of 0 -> stablishConnection targetCell (2, CantConnect) $ curriedMapInsert (cellProp {top = targetCell})
+                          1 -> stablishConnection targetCell (3, CantConnect) $ curriedMapInsert (cellProp {right = targetCell})
+                          2 -> stablishConnection targetCell (0, CantConnect) $ curriedMapInsert (cellProp {bottom = targetCell})
+                          3 -> stablishConnection targetCell (1, CantConnect) $ curriedMapInsert (cellProp {left = targetCell})
 
 initializeMazeAndGenerate :: Int -> [Int] -> Map.Map Cell CellProp
 initializeMazeAndGenerate size randomList = generateMaze size randomCoords randomList $ getMapCellsWithGroup size 1 where randomCoords = shuffleList randomList $ getCellsCoordinate size
@@ -170,18 +164,6 @@ generateMaze  size (thisCell:cells) randList cellsMap = generateMaze size cells 
 
 filterOnlyDifferentGroups :: Int ->  Map.Map Cell CellProp -> [Cell] -> [Cell]
 filterOnlyDifferentGroups groupNum cellsMap cells = filter (\c -> groupNum /= (group (lookupProp c cellsMap))) cells 
-
--- changeGroupAndPropagate :: Cell -> Map.Map Cell CellProp -> Int -> Map.Map Cell CellProp
--- changeGroupAndPropagate cell cellsMap group = if length connections /= 0 then propagateChildrenGroupChange connections cellsMap group else updatedCellsMap
---                                                 where connections = filterOnlyDifferentGroups group updatedCellsMap $ getExistingConnections newCellProp 
---                                                       updatedCellsMap = Map.insert cell newCellProp cellsMap
---                                                       newCellProp = Deb.trace ("Setting GP "++show group++" TO "++show cell++" "++show oldCellProp) $ setGroupCellProp group oldCellProp 
---                                                       oldCellProp = lookupProp cell cellsMap
-
-
--- propagateChildrenGroupChange :: [Cell] -> Map.Map Cell CellProp -> Int -> Map.Map Cell CellProp
--- propagateChildrenGroupChange (c:[]) cellsMap group = (changeGroupAndPropagate c cellsMap group)
--- propagateChildrenGroupChange (c:cells) cellsMap group = Map.fromList $ (Map.toList $ changeGroupAndPropagate c cellsMap group)++(Map.toList $ propagateChildrenGroupChange cells cellsMap group)
 
 changeGroup :: Cell -> Cell -> Map.Map Cell CellProp -> Map.Map Cell CellProp
 changeGroup motherCell toConnectCell cellMaps = Map.union updatedElems cellMaps
@@ -215,30 +197,3 @@ createSvgFromCellsMap thickWall dimenCell gridSize cellsMap = createSvgContent w
 generateMazeAndCreateSvg :: Int -> Int -> Int -> [Int] -> String
 generateMazeAndCreateSvg thickWall dimenCell gridSize randomList = createSvgFromCellsMap thickWall dimenCell gridSize cellsMap
     where cellsMap = initializeMazeAndGenerate gridSize randomList
-
--- createMapCells :: Int -> [(Cell, CellProp)] -> Map.Map Cell CellProp
--- createMapCells _ [] = Map.empty
--- createMapCells size (x:[]) = Map.
--- createMapCells size (x:xs) = Map.
-
--- createGroupForCell :: Cell -> Int -> Cell
--- createGroupForCell (Cell x y) group = Cell x y group 
-
--- createGroupForEachCell :: Int -> [Cell] -> [Cell]
--- createGroupForEachCell _ [] = []
--- createGroupForEachCell startGroup (c:[]) = [createGroupForCell c startGroup]
--- createGroupForEachCell startGroup (c:cells) = [createGroupForCell c startGroup]++createGroupForEachCell (startGroup+1) cells
-
--- getCellsWithGroup :: Int -> [Cell]
--- getCellsWithGroup size = createGroupForEachCell 1 $ getCellsCoordinate size
-
--- map
-
--- Graph
--- data Graph = EmptyGraph | Node {cellG::Cell, topG::Graph, rightG::Graph, bottomG::Graph, leftG::Graph} deriving (Show, Eq)
--- singletonGraph :: Cell -> Graph
--- singletonGraph cell = Node  {cellG = cell, topG=EmptyGraph, rightG=EmptyGraph, bottomG=EmptyGraph, leftG=EmptyGraph}
--- Map.
--- % Modular pra acessar
--- Usar Map
--- DUPLA DEPENDENCIA, QUANDO `A` LIGA EM `B`, `B` TBM SE LIGA EM `A` 
