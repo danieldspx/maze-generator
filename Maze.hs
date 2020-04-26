@@ -2,8 +2,7 @@ module Maze (
     Cell,
     CellProp,
     Group,
-    initializeMazeAndGenerate,
-    getMazeSvg
+    generateMazeAndCreateSvg
 ) where
 
 import Svg
