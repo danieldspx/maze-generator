@@ -13,7 +13,8 @@ data Rect = Rect {pos :: Coord, dimen :: Dimen}
 
 -- String inicial do SVG
 svgBegin :: Int -> Int -> String
-svgBegin width height = printf "<svg width='%d' height='%d' xmlns='http://www.w3.org/2000/svg'>\n" width height
+svgBegin width height = 
+    printf "<svg width='%d' height='%d' xmlns='http://www.w3.org/2000/svg'><rect width='100%%' height='100%%' fill='white'/>\n" width height
 
 -- String final do SVG
 svgEnd :: String
