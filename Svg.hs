@@ -7,9 +7,9 @@ module Svg (
 
 import Text.Printf
 
-data Coord = Coord Int Int -- X Y
-data Dimen = Dimen Int Int -- Width Height
-data Rect = Rect {pos :: Coord, dimen :: Dimen}
+data Coord = Coord Int Int deriving (Show)
+data Dimen = Dimen Int Int deriving (Show)
+data Rect = Rect {pos :: Coord, dimen :: Dimen} deriving (Show)
 
 -- String inicial do SVG
 svgBegin :: Int -> Int -> String
