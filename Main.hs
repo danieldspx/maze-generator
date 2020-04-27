@@ -1,5 +1,5 @@
 
-import qualified Maze as Maze
+import qualified Maze.Generator as Maze
 import System.IO
 import System.Random
 
