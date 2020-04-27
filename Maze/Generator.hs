@@ -1,4 +1,4 @@
-module Maze (
+module Maze.Generator (
     generateMazeAndCreateSvg
 ) where
 
@@ -77,13 +77,13 @@ setGroupCellProp group cellProp = CellProp {group=group,
                                                 bottom=(bottom cellProp),
                                                 left=(left cellProp)} 
 
-_setGroupTupleCells :: Int -> [(Cell, CellProp)] -> [(Cell, CellProp)]
-_setGroupTupleCells _ [] = [] 
-_setGroupTupleCells startGroup ((cell, cellProp):[]) = [(cell, setGroupCellProp startGroup cellProp)]
-_setGroupTupleCells startGroup (x:xs) = (_setGroupTupleCells startGroup [x])++(_setGroupTupleCells (startGroup+1) xs)
+setGroupTupleCells :: Int -> [(Cell, CellProp)] -> [(Cell, CellProp)]
+setGroupTupleCells _ [] = [] 
+setGroupTupleCells startGroup ((cell, cellProp):[]) = [(cell, setGroupCellProp startGroup cellProp)]
+setGroupTupleCells startGroup (x:xs) = (setGroupTupleCells startGroup [x])++(setGroupTupleCells (startGroup+1) xs)
 
 setGroupMapCells :: Int -> Map.Map Cell CellProp -> Map.Map Cell CellProp
-setGroupMapCells startGroup cells = Map.fromList $ _setGroupTupleCells startGroup $ Map.toList cells
+setGroupMapCells startGroup cells = Map.fromList $ setGroupTupleCells startGroup $ Map.toList cells
 
 getMapCells :: Int -> Map.Map Cell CellProp
 getMapCells size = Map.fromList tuplesCellNeighbour
