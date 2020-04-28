@@ -1,5 +1,5 @@
 module Maze.Solver (
-    
+    getCellMapForShortestPathSolution
 ) where
 
 import Maze.Generator
@@ -9,8 +9,8 @@ import qualified Data.List as List
 import qualified Data.Set as Set
 import Debug.Trace as Deb
 
-data Edge = Edge {vertice::Cell, exitVertices::[Cell]} deriving (Show)
-data AStar = AStar {vertex::Cell, distance::Float, fromVertex::Cell} deriving (Show)
+data Edge = Edge {vertice :: Cell, exitVertices :: [Cell]} deriving (Show)
+data AStar = AStar {vertex :: Cell, distance :: Float, fromVertex :: Cell} deriving (Show)
 
 type AStarMap = Map.Map Cell AStar
 type EdgeMap = Map.Map Cell [Cell]
@@ -92,3 +92,9 @@ reverseAStar :: Cell -> AStarMap -> [Cell]
 reverseAStar AbsentCell _ = []
 reverseAStar from astarMap = [from]++(reverseAStar reverseLinkCell astarMap)
     where reverseLinkCell = fromVertex $ lookupAStar from astarMap
+
+getCellMapForShortestPathSolution :: Map.Map Cell CellProp -> Cell -> Cell -> Map.Map Cell CellProp
+getCellMapForShortestPathSolution cellsMap from to = Map.mapWithKey (\key x -> if isPartOfSolution key then x {isSolution=True} else x) cellsMap
+    where isPartOfSolution c = c `elem` cellsOfSolution
+          cellsOfSolution = initializeShortestPath cellsMap from to
+          
