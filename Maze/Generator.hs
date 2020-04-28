@@ -66,7 +66,7 @@ getLeftNeighbour AbsentCell = AbsentCell
 getLeftNeighbour (Cell x y) = if x == 0 then AbsentCell else Cell (pred x) y
 
 getEmptyCellProp :: CellProp
-getEmptyCellProp = CellProp {group=0,top=AbsentCell,right=AbsentCell,bottom=AbsentCell,left=AbsentCell,isSolution=false}
+getEmptyCellProp = CellProp {group=0,top=AbsentCell,right=AbsentCell,bottom=AbsentCell,left=AbsentCell,isSolution=False}
 
 getNeighbours :: Int -> Cell -> CellProp
 getNeighbours _ AbsentCell = getEmptyCellProp
@@ -74,7 +74,7 @@ getNeighbours size cell = CellProp {group=0,top=(getTopNeighbour cell),
                                     right=(getRightNeighbour size cell),
                                     bottom=(getBottomNeighbour size cell),
                                     left=(getLeftNeighbour cell),
-                                    isSolution=false}
+                                    isSolution=False}
 
 setGroupTupleCells :: Int -> [(Cell, CellProp)] -> [(Cell, CellProp)]
 setGroupTupleCells _ [] = [] 
