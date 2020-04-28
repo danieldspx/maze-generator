@@ -9,7 +9,7 @@ import Text.Printf
 
 data Coord = Coord Int Int deriving (Show)
 data Dimen = Dimen Int Int deriving (Show)
-data Rect = Rect {pos :: Coord, dimen :: Dimen} deriving (Show)
+data Rect = Rect {pos :: Coord, dimen :: Dimen, fill :: String} deriving (Show)
 
 -- String inicial do SVG
 svgBegin :: Int -> Int -> String
@@ -21,7 +21,7 @@ svgEnd :: String
 svgEnd = "</svg>"
 
 createRectXML :: Rect -> String
-createRectXML (Rect (Coord x y) (Dimen w h)) = printf "<rect x='%d' y='%d' width='%d' height='%d' fill='black'/>\n" x y w h
+createRectXML (Rect (Coord x y) (Dimen w h) fill) = printf "<rect x='%d' y='%d' width='%d' height='%d' fill='%s'/>\n" x y w h fill
 
 createSvgContent :: Int -> Int -> [Rect] -> String
 createSvgContent wSvg hSvg  walls = (svgBegin wSvg hSvg)++(concat(map (createRectXML) walls))++svgEnd

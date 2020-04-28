@@ -31,21 +31,6 @@ deleteNth i items = take i items ++ drop (1 + i) items
 lookupProp :: Cell -> Map.Map Cell CellProp -> CellProp
 lookupProp x y = Maybe.fromMaybe getEmptyCellProp $ Map.lookup x y
 
-removeDuplicates :: (Foldable t, Eq a, Num a) => t a -> [a]
-removeDuplicates = foldr (\x seen -> if x `elem` seen then seen else x : seen) []
-
-tupleToCell :: (Int, Int) -> Cell
-tupleToCell (x, y) = Cell x y
-
-cellToRect :: Int -> Cell -> Rect
-cellToRect sizeCell (Cell x y) = Rect {pos = Coord x y, dimen = Dimen sizeCell sizeCell}
-
-getCellList :: [(Int, Int)] -> [Cell]
-getCellList tuples = map tupleToCell tuples
-
-getMazeSvg :: Int -> Int -> [Cell] -> String
-getMazeSvg sizeSvg sizeCell cells = createSvgContent sizeSvg sizeCell $ map (cellToRect sizeCell) cells
-
 getCellsCoordinate :: Int -> [Cell]
 getCellsCoordinate size = [Cell x y | x <- [0..size], y <- [0..size], x < size, y < size]
 
@@ -173,13 +158,22 @@ changeGroup motherCell toConnectCell cellMaps = Map.union updatedElems cellMaps
 
 convertCellToRect :: Int -> Int -> Cell -> Int -> Rect
 convertCellToRect thick dimen (Cell x y) side = let biggerDim = 2*thick+dimen
-    in case side of 0 -> (Rect (Coord (x*thick+x*dimen) (y*thick+y*dimen)) (Dimen biggerDim thick))
-                    1 -> (Rect (Coord ((x+1)*dimen+(x+1)*thick) (y*dimen+y*thick)) (Dimen thick biggerDim))
-                    2 -> (Rect (Coord (x*thick+x*dimen) ((y+1)*thick+(y+1)*dimen)) (Dimen biggerDim thick))
-                    3 -> (Rect (Coord (x*dimen+x*thick) (y*dimen+y*thick)) (Dimen thick biggerDim))
+    in case side of 0 -> (Rect (Coord (x*thick+x*dimen) (y*thick+y*dimen)) (Dimen biggerDim thick) "black")
+                    1 -> (Rect (Coord ((x+1)*dimen+(x+1)*thick) (y*dimen+y*thick)) (Dimen thick biggerDim) "black")
+                    2 -> (Rect (Coord (x*thick+x*dimen) ((y+1)*thick+(y+1)*dimen)) (Dimen biggerDim thick) "black")
+                    3 -> (Rect (Coord (x*dimen+x*thick) (y*dimen+y*thick)) (Dimen thick biggerDim) "black")
+
+getRectForSolution :: Int -> Int -> Cell -> Rect
+getRectForSolution thick dimen (Cell x y) = Rect (Coord (padding+xMargin) (padding+yMargin)) (Dimen dimenSol dimenSol) "red"
+    where dimenSol = floor 0.75*(fromIntegral dimen)
+          padding = (dimen - dimenSol) `div` 2
+          xMargin = x*thick+x*dimen + thick
+          yMargin = y*thick+y*dimen + thick
 
 getAllRectForCell :: Cell -> CellProp -> Int -> Int ->[Rect]
-getAllRectForCell cell cellProp thick dim = map (convertCellToRect thick dim cell) $ map fst $ getAbsentConnection cellProp [0..3]
+getAllRectForCell cell cellProp thick dim = solutionRect++allRects
+    where allRects = map (convertCellToRect thick dim cell) $ map fst $ getAbsentConnection cellProp [0..3]
+          solutionRect = if isSolution cellProp then [getRectForSolution thick dim cell] else []
 
 convertCellsMapAsListToRects :: [(Cell, CellProp)] -> Int -> Int -> [Rect]
 convertCellsMapAsListToRects ((cell, cellProp):[]) thick dim = getAllRectForCell cell cellProp thick dim
