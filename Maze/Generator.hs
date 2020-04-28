@@ -5,7 +5,8 @@ module Maze.Generator (
     CellProp(..),
     getNeighbourFromPos,
     getConnection,
-    initializeMazeAndGenerate
+    initializeMazeAndGenerate,
+    createSvgFromCellsMap
 ) where
 
 import Svg
@@ -15,7 +16,7 @@ import Debug.Trace as Deb
 
 type Group = Int
 data Cell = AbsentCell | Cell Int Int | CantConnect deriving (Show, Eq, Ord) -- X Y
-data CellProp = AbsentProp | CellProp {group::Group, top::Cell, right::Cell, bottom::Cell, left::Cell} deriving (Show, Ord)
+data CellProp = AbsentProp | CellProp {group::Group, top::Cell, right::Cell, bottom::Cell, left::Cell, isSolution::Bool} deriving (Show, Ord)
 -- A CellProp with `group = 0` means that it has no group. A group must be >= 1.
 
 instance Eq CellProp where
@@ -65,26 +66,19 @@ getLeftNeighbour AbsentCell = AbsentCell
 getLeftNeighbour (Cell x y) = if x == 0 then AbsentCell else Cell (pred x) y
 
 getEmptyCellProp :: CellProp
-getEmptyCellProp = CellProp {group=0,top=AbsentCell,right=AbsentCell,bottom=AbsentCell,left=AbsentCell}
+getEmptyCellProp = CellProp {group=0,top=AbsentCell,right=AbsentCell,bottom=AbsentCell,left=AbsentCell,isSolution=false}
 
 getNeighbours :: Int -> Cell -> CellProp
 getNeighbours _ AbsentCell = getEmptyCellProp
 getNeighbours size cell = CellProp {group=0,top=(getTopNeighbour cell),
                                     right=(getRightNeighbour size cell),
                                     bottom=(getBottomNeighbour size cell),
-                                    left=(getLeftNeighbour cell)}
-
-
-setGroupCellProp :: Int -> CellProp -> CellProp
-setGroupCellProp group cellProp = CellProp {group=group,
-                                                top=(top cellProp),
-                                                right=(right cellProp),
-                                                bottom=(bottom cellProp),
-                                                left=(left cellProp)} 
+                                    left=(getLeftNeighbour cell),
+                                    isSolution=false}
 
 setGroupTupleCells :: Int -> [(Cell, CellProp)] -> [(Cell, CellProp)]
 setGroupTupleCells _ [] = [] 
-setGroupTupleCells startGroup ((cell, cellProp):[]) = [(cell, setGroupCellProp startGroup cellProp)]
+setGroupTupleCells startGroup ((cell, cellProp):[]) = [(cell, cellProp {group=startGroup})]
 setGroupTupleCells startGroup (x:xs) = (setGroupTupleCells startGroup [x])++(setGroupTupleCells (startGroup+1) xs)
 
 setGroupMapCells :: Int -> Map.Map Cell CellProp -> Map.Map Cell CellProp
@@ -172,7 +166,7 @@ filterOnlyDifferentGroups groupNum cellsMap cells = filter (\c -> groupNum /= (g
 
 changeGroup :: Cell -> Cell -> Map.Map Cell CellProp -> Map.Map Cell CellProp
 changeGroup motherCell toConnectCell cellMaps = Map.union updatedElems cellMaps
-    where updatedElems = Map.fromList $ map (\(cellIt, propIt) -> (cellIt, setGroupCellProp toGroup propIt)) cellsThatNeedUpdate
+    where updatedElems = Map.fromList $ map (\(cellIt, propIt) -> (cellIt, propIt {group=toGroup})) cellsThatNeedUpdate
           cellsThatNeedUpdate = filter (\(_, propIt) -> (group propIt) == fromGroup) $ Map.toList cellMaps
           toGroup = group $ lookupProp motherCell cellMaps
           fromGroup = group $ lookupProp toConnectCell cellMaps
