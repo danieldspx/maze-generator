@@ -134,9 +134,21 @@ stablishConnection cell (connDirect, targetCell) cellsMap = let cellProp = looku
 initializeMazeAndGenerate :: Int -> [Int] -> Map.Map Cell CellProp
 initializeMazeAndGenerate size randomList = generateMaze size randomCoords randomList $ getMapCellsWithGroup size 1 where randomCoords = shuffleList randomList $ getCellsCoordinate size
 
+sameGroupHelper :: [(Cell, CellProp)] -> Int -> (Bool, Cell)
+sameGroupHelper ((cell, prop):[]) defaultGroup = ((group prop) == defaultGroup, AbsentCell)
+sameGroupHelper (it:rest) defaultGroup = if fst (sameGroupHelper [it] defaultGroup) then sameGroupHelper rest defaultGroup else (False, fst it)
+
+areAllSameGroup :: Map.Map Cell CellProp -> (Bool, Cell)
+areAllSameGroup cellsMap = sameGroupHelper (Map.toList cellsMap) $ group $ lookupProp (Cell 0 0) cellsMap
+
+getAllFromSameGroup :: Int -> Map.Map Cell CellProp -> [Cell]
+getAllFromSameGroup groupSearch cellsMap = map (\(cell,_) -> cell) $ filter (\(cell, prop) -> group prop == groupSearch) $ Map.toList cellsMap
+
 generateMaze :: Int -> [Cell] -> [Int] -> Map.Map Cell CellProp -> Map.Map Cell CellProp
-generateMaze _ [] _ cellsMap = cellsMap
-generateMaze  size (thisCell:cells) randList cellsMap = generateMaze size cells randTail updatedCellsMap 
+generateMaze size [] randList cellsMap = if fst areAllSameGroupResult then cellsMap else generateMaze size fromSameGp randList cellsMap
+    where fromSameGp = getAllFromSameGroup (group (lookupProp (snd areAllSameGroupResult) cellsMap)) cellsMap
+          areAllSameGroupResult = (areAllSameGroup cellsMap)
+generateMaze size (thisCell:cells) randList cellsMap = generateMaze size cells randTail updatedCellsMap 
     where updatedCellsMap = if (length possibleConn) /= 0 then
                 changeGroup thisCell (snd toConnectCell) (stablishConnection thisCell toConnectCell cellsMap)
             else cellsMap
