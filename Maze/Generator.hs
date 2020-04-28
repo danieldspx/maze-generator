@@ -1,5 +1,11 @@
 module Maze.Generator (
-    generateMazeAndCreateSvg
+    generateMazeAndCreateSvg,
+    Group,
+    Cell(..),
+    CellProp(..),
+    getNeighbourFromPos,
+    getConnection,
+    initializeMazeAndGenerate
 ) where
 
 import Svg
@@ -22,7 +28,6 @@ deleteNth :: Int -> [a] -> [a]
 deleteNth i items = take i items ++ drop (1 + i) items
 
 lookupProp :: Cell -> Map.Map Cell CellProp -> CellProp
--- lookupProp x y = Map.findWithDefault AbsentProp x y
 lookupProp x y = Maybe.fromMaybe getEmptyCellProp $ Map.lookup x y
 
 removeDuplicates :: (Foldable t, Eq a, Num a) => t a -> [a]
