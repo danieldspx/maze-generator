@@ -165,7 +165,7 @@ convertCellToRect thick dimen (Cell x y) side = let biggerDim = 2*thick+dimen
 
 getRectForSolution :: Int -> Int -> Cell -> Rect
 getRectForSolution thick dimen (Cell x y) = Rect (Coord (padding+xMargin) (padding+yMargin)) (Dimen dimenSol dimenSol) "red"
-    where dimenSol = floor 0.75*(fromIntegral dimen)
+    where dimenSol = floor $ 0.75*(fromIntegral dimen)
           padding = (dimen - dimenSol) `div` 2
           xMargin = x*thick+x*dimen + thick
           yMargin = y*thick+y*dimen + thick
