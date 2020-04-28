@@ -80,9 +80,9 @@ updateAStarMap vertex toCell (extV:exitVertices) astarMap = Map.union mapAStarFr
 
 shortestPath :: Cell -> AStarMap -> EdgeMap -> [Cell] -> [Cell] -> [Cell]
 shortestPath _ _ _ _ [] = error "All cells were visited and final cell was not found."
-shortestPath toCell astarMap edgesMap visiteds unvisited = if currentVertex == toCell then reverseAStar toCell astarMap else callShortestPath
+shortestPath toCell astarMap edgesMap visiteds unvisited =Deb.trace ("\ncurrent:"++show currentVertex) $ if currentVertex == toCell then Deb.trace ("\nReversing: "++show updatedAstar) $ reverseAStar toCell updatedAstar else callShortestPath
     where callShortestPath = shortestPath toCell updatedAstar edgesMap updatedVisteds updatedUnvisited
-          currentVertex = fst $ (filter (\(c,_) -> not $ c `elem` visiteds) $ Map.toAscList astarMap)!!0
+          currentVertex = fst $ (filter (\(c,_) -> c `elem` unvisited) $ Map.toAscList astarMap)!!0
           exitVertices = filter (\x -> not $ x `elem` visiteds) $ lookupExitVtx currentVertex edgesMap
           updatedAstar = Map.union (updateAStarMap currentVertex toCell exitVertices astarMap) astarMap
           updatedVisteds = currentVertex:visiteds
