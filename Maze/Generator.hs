@@ -152,9 +152,10 @@ generateMaze size (thisCell:cells) randList cellsMap = generateMaze size cells r
     where updatedCellsMap = if (length possibleConn) /= 0 then
                 changeGroup thisCell (snd toConnectCell) (stablishConnection thisCell toConnectCell cellsMap)
             else cellsMap
+          randListNonEmpty = if length randList == 0 then [0] else randList
           toConnectCell = (possibleConn!!randNum)
           randNum = if length possibleConn <= 1 then 0 else divMod' (head randList) (length possibleConn - 1)
-          randTail = if length randList == 0 then [] else tail randList
+          randTail = if length randListNonEmpty <= 1 then randListNonEmpty else tail randListNonEmpty
           possibleConn = searchPossibleConnection size cellsMap thisCell
           cellProp = lookupProp thisCell cellsMap
 
