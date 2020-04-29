@@ -8,6 +8,7 @@ import qualified Data.Maybe as Maybe
 import qualified Data.List as List
 import qualified Data.Set as Set
 import Debug.Trace as Deb
+import Data.Map.Internal.Debug as DebMap
 
 data Edge = Edge {vertice :: Cell, exitVertices :: [Cell]} deriving (Show)
 data AStar = AStar {vertex :: Cell, distance :: Float, fromVertex :: Cell} deriving (Show)
@@ -80,18 +81,20 @@ updateAStarMap vertex toCell (extV:exitVertices) astarMap = Map.union mapAStarFr
 
 shortestPath :: Cell -> AStarMap -> EdgeMap -> [Cell] -> [Cell] -> [Cell]
 shortestPath _ _ _ _ [] = error "All cells were visited and final cell was not found."
-shortestPath toCell astarMap edgesMap visiteds unvisited =Deb.trace ("\ncurrent:"++show currentVertex) $ if currentVertex == toCell then Deb.trace ("\nReversing: "++show updatedAstar) $ reverseAStar toCell updatedAstar else callShortestPath
+shortestPath toCell astarMap edgesMap visiteds unvisited = if currentVertex == toCell then reverseAStar toCell updatedAstar else callShortestPath
     where callShortestPath = shortestPath toCell updatedAstar edgesMap updatedVisteds updatedUnvisited
-          currentVertex = fst $ (filter (\(c,_) -> c `elem` unvisited) $ Map.toAscList astarMap)!!0
+          currentVertex = vertex $ (List.sort $ filter (\x -> (vertex x) `elem` unvisited) $ map (\(_,astar) -> astar) $ Map.toList astarMap)!!0
           exitVertices = filter (\x -> not $ x `elem` visiteds) $ lookupExitVtx currentVertex edgesMap
           updatedAstar = Map.union (updateAStarMap currentVertex toCell exitVertices astarMap) astarMap
-          updatedVisteds = currentVertex:visiteds
+          updatedVisteds = Deb.trace ("Path Finding - Iterations: "++show (length visiteds)++" of at most "++show (length astarMap)) $ currentVertex:visiteds
           updatedUnvisited = List.delete currentVertex unvisited
 
 reverseAStar :: Cell -> AStarMap -> [Cell]
 reverseAStar AbsentCell _ = []
 reverseAStar from astarMap = [from]++(reverseAStar reverseLinkCell astarMap)
     where reverseLinkCell = fromVertex $ lookupAStar from astarMap
+
+-- badarasFunction updatedAstar = map (\(c, _) -> c) $ filter (\(c,a) -> fromVertex a /= AbsentCell) $ Map.toList updatedAstar
 
 getCellMapForShortestPathSolution :: Map.Map Cell CellProp -> Cell -> Cell -> Map.Map Cell CellProp
 getCellMapForShortestPathSolution cellsMap from to = Map.mapWithKey (\key x -> if isPartOfSolution key then x {isSolution=True} else x) cellsMap
