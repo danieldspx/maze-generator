@@ -13,6 +13,7 @@ import Svg
 import qualified Data.Map as Map
 import qualified Data.Maybe as Maybe
 import Debug.Trace as Deb
+import System.IO.Unsafe
 
 type Group = Int
 data Cell = AbsentCell | Cell Int Int | CantConnect deriving (Show, Eq, Ord) -- X Y
@@ -132,7 +133,7 @@ stablishConnection cell (connDirect, targetCell) cellsMap = let cellProp = looku
                           3 -> stablishConnection targetCell (1, CantConnect) $ curriedMapInsert (cellProp {left = targetCell})
 
 initializeMazeAndGenerate :: Int -> [Int] -> Map.Map Cell CellProp
-initializeMazeAndGenerate size randomList = generateMaze size randomCoords randomList $ getMapCellsWithGroup size 1 where randomCoords = shuffleList randomList $ getCellsCoordinate size
+initializeMazeAndGenerate size randomList = generateMaze 0 size randomCoords randomList $ getMapCellsWithGroup size 1 where randomCoords = shuffleList randomList $ getCellsCoordinate size
 
 sameGroupHelper :: [(Cell, CellProp)] -> Int -> (Bool, Cell)
 sameGroupHelper ((cell, prop):[]) defaultGroup = ((group prop) == defaultGroup, AbsentCell)
@@ -144,11 +145,11 @@ areAllSameGroup cellsMap = sameGroupHelper (Map.toList cellsMap) $ group $ looku
 getAllFromSameGroup :: Int -> Map.Map Cell CellProp -> [Cell]
 getAllFromSameGroup groupSearch cellsMap = map (\(cell,_) -> cell) $ filter (\(cell, prop) -> group prop == groupSearch) $ Map.toList cellsMap
 
-generateMaze :: Int -> [Cell] -> [Int] -> Map.Map Cell CellProp -> Map.Map Cell CellProp
-generateMaze size [] randList cellsMap = if fst areAllSameGroupResult then cellsMap else generateMaze size fromSameGp randList cellsMap
+generateMaze :: Int -> Int -> [Cell] -> [Int] -> Map.Map Cell CellProp -> Map.Map Cell CellProp
+generateMaze it size [] randList cellsMap = if fst areAllSameGroupResult then cellsMap else generateMaze (it+1) size fromSameGp randList cellsMap
     where fromSameGp = getAllFromSameGroup (group (lookupProp (snd areAllSameGroupResult) cellsMap)) cellsMap
           areAllSameGroupResult = (areAllSameGroup cellsMap)
-generateMaze size (thisCell:cells) randList cellsMap = generateMaze size cells randTail updatedCellsMap 
+generateMaze it size (thisCell:cells) randList cellsMap = Deb.trace ("Creating Maze - Iteration:"++ show it) $ outputAndCall $ generateMaze (it+1) size cells randTail updatedCellsMap 
     where updatedCellsMap = if (length possibleConn) /= 0 then
                 changeGroup thisCell (snd toConnectCell) (stablishConnection thisCell toConnectCell cellsMap)
             else cellsMap
@@ -158,6 +159,7 @@ generateMaze size (thisCell:cells) randList cellsMap = generateMaze size cells r
           randTail = if length randListNonEmpty <= 1 then randListNonEmpty else tail randListNonEmpty
           possibleConn = searchPossibleConnection size cellsMap thisCell
           cellProp = lookupProp thisCell cellsMap
+          outputAndCall f = seq (unsafePerformIO $ writeFile ("generationOutputs/mazeGen_"++(show it)++".svg") (createSvgFromCellsMap 10 10 size updatedCellsMap)) f
 
 filterOnlyDifferentGroups :: Int ->  Map.Map Cell CellProp -> [Cell] -> [Cell]
 filterOnlyDifferentGroups groupNum cellsMap cells = filter (\c -> groupNum /= (group (lookupProp c cellsMap))) cells 

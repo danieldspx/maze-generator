@@ -9,6 +9,7 @@ import qualified Data.List as List
 import qualified Data.Set as Set
 import Debug.Trace as Deb
 import Data.Map.Internal.Debug as DebMap
+import System.IO.Unsafe
 
 data Edge = Edge {vertice :: Cell, exitVertices :: [Cell]} deriving (Show)
 data AStar = AStar {vertex :: Cell, distance :: Float, fromVertex :: Cell} deriving (Show)
@@ -58,8 +59,8 @@ initializeAStarWithInfinite initial edges = ((createStartPoint initial):) $ map 
     where fltrdEdges = filter (\edge -> (vertice edge) /= initial) edges
           fromEdgeToAStar edge = getEmptyAStart (vertice edge)
 
-initializeShortestPath :: Map.Map Cell CellProp -> Cell -> Cell -> [Cell]
-initializeShortestPath cellsMap from to = shortestPath to astarMap edgesMap [] keys
+initializeShortestPath :: Map.Map Cell CellProp -> Cell -> Cell -> ([Cell] -> Map.Map Cell CellProp) -> [Cell]
+initializeShortestPath cellsMap from to curriedMiddleware = shortestPath curriedMiddleware 0 to astarMap edgesMap [] keys
     where astarMap = Map.fromList $ map (\x -> (vertex x, x)) $ initializeAStarWithInfinite from edges
           edgesMap = Map.fromList $ map (\x -> ((vertice x), (exitVertices x))) edges
           edges = cellsMapToEdge cellsMap
@@ -79,10 +80,11 @@ updateAStarMap vertex toCell (extV:exitVertices) astarMap = Map.union mapAStarFr
     where mapAStarFromSingle = (updateAStarMap vertex toCell [extV] astarMap)
           mapAStarFromRest = (updateAStarMap vertex toCell exitVertices astarMap)
 
-shortestPath :: Cell -> AStarMap -> EdgeMap -> [Cell] -> [Cell] -> [Cell]
-shortestPath _ _ _ _ [] = error "All cells were visited and final cell was not found."
-shortestPath toCell astarMap edgesMap visiteds unvisited = if currentVertex == toCell then reverseAStar toCell updatedAstar else callShortestPath
-    where callShortestPath = shortestPath toCell updatedAstar edgesMap updatedVisteds updatedUnvisited
+shortestPath :: ([Cell] -> Map.Map Cell CellProp) -> Int -> Cell -> AStarMap -> EdgeMap -> [Cell] -> [Cell] -> [Cell]
+shortestPath _ _ _ _ _ _ [] = error "All cells were visited and final cell was not found."
+shortestPath middleware it toCell astarMap edgesMap visiteds unvisited = if currentVertex == toCell then reverseAStar toCell updatedAstar else callShortestPath
+    where callShortestPath = seq writeStepSolution (shortestPath middleware (it+1) toCell updatedAstar edgesMap updatedVisteds updatedUnvisited)
+          writeStepSolution = (unsafePerformIO $ writeFile ("generationSolution/mazeSol_"++(show it)++".svg") (createSvgFromCellsMap 10 10 (floor $ sqrt $ fromIntegral $ length updatedAstar) $ middleware $ _allTouchedCellsFromAStar updatedAstar))
           currentVertex = vertex $ (List.sort $ filter (\x -> (vertex x) `elem` unvisited) $ map (\(_,astar) -> astar) $ Map.toList astarMap)!!0
           exitVertices = filter (\x -> not $ x `elem` visiteds) $ lookupExitVtx currentVertex edgesMap
           updatedAstar = Map.union (updateAStarMap currentVertex toCell exitVertices astarMap) astarMap
@@ -94,10 +96,16 @@ reverseAStar AbsentCell _ = []
 reverseAStar from astarMap = [from]++(reverseAStar reverseLinkCell astarMap)
     where reverseLinkCell = fromVertex $ lookupAStar from astarMap
 
--- badarasFunction updatedAstar = map (\(c, _) -> c) $ filter (\(c,a) -> fromVertex a /= AbsentCell) $ Map.toList updatedAstar
+_allTouchedCellsFromAStar :: AStarMap -> [Cell]
+_allTouchedCellsFromAStar updatedAstar = (Cell 0 0:) $ map (\(c, _) -> c) $ filter (\(c,a) -> fromVertex a /= AbsentCell) $ Map.toList updatedAstar
+
+-- _curriedMiddlewareWriteStepSolution cellsMap from to = getCellMapForShortestPathSolution cellsMap from to (_allTouchedCellsFromAStar )
 
 getCellMapForShortestPathSolution :: Map.Map Cell CellProp -> Cell -> Cell -> Map.Map Cell CellProp
-getCellMapForShortestPathSolution cellsMap from to = Map.mapWithKey (\key x -> if isPartOfSolution key then x {isSolution=True} else x) cellsMap
+getCellMapForShortestPathSolution cellsMap from to = curriedMiddleware $ initializeShortestPath cellsMap from to curriedMiddleware
+    where curriedMiddleware = cellsMapTransformerFromSolution cellsMap from to
+          
+cellsMapTransformerFromSolution :: Map.Map Cell CellProp -> Cell -> Cell -> [Cell] -> Map.Map Cell CellProp
+cellsMapTransformerFromSolution cellsMap from to cellsOfSolution = Map.mapWithKey (\key x -> if isPartOfSolution key then x {isSolution=True} else x) cellsMap
     where isPartOfSolution c = c `elem` cellsOfSolution
-          cellsOfSolution = initializeShortestPath cellsMap from to
           
