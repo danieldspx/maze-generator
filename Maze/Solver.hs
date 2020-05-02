@@ -72,7 +72,7 @@ distanceBtwCells (Cell x1 y1) (Cell x2 y2) = sqrt $ fromIntegral $ (x1-x2)^2 + (
 updateAStarMap :: Cell -> Cell -> [Cell] -> AStarMap -> AStarMap
 updateAStarMap _ _ [] astarMap = astarMap
 updateAStarMap vertex toCell (extV:[]) astarMap = if dist < (distance extAStar) then Map.insert extV updatedAstar Map.empty else Map.empty
-    where dist = originVtxDist + (distanceBtwCells extV toCell)
+    where dist = (distanceBtwCells extV toCell)
           updatedAstar = extAStar {distance=dist,fromVertex=vertex}
           extAStar = lookupAStar extV astarMap
           originVtxDist = distance $ lookupAStar vertex astarMap
