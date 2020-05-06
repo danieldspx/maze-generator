@@ -7,7 +7,7 @@ import System.Random
 mazeName = "maze.svg"
 mazeSolvedName = "maze_solution.svg"
 dimenCell = 10
-gridSize = 50
+gridSize = 12
 thickWall = 10
 solutionCellStart = Generator.Cell 0 0
 solutionCellEnd = Generator.Cell (gridSize-1) (gridSize-1)
